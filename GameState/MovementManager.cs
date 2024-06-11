@@ -1,16 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using FixMath.NET;
 using Godot;
 
 public class MovementManager
 {
     private int _nextId = 0;
-    private const float MinGap = 0.05f;
+    private const double MinGap = 0.05;
     private const int MaxCollisionLoops = 100;
     private Dictionary<int, Box> _idToBox = new();
     private List<Box> _staticBoxes = new();
-    private List<Fighter3> _fighters = new();
+    private List<Fighter> _fighters = new();
     private IEnumerable<Box> _solidBoxes => _staticBoxes.Concat(_fighters);
     private Bullet _bullet = null;
     private Pistol _pistol;
@@ -35,7 +36,7 @@ public class MovementManager
         RegisterBox(box);
     }
 
-    public void AddFighter(Fighter3 fighter)
+    public void AddFighter(Fighter fighter)
     {
         _fighters.Add(fighter);
         RegisterBox(fighter);
@@ -75,20 +76,20 @@ public class MovementManager
         _idToBox.Add(box.ManagerId, box);
     }
 
-    public void AdvanceState(GameInput[] input, float deltaMs)
+    public void AdvanceState(GameInput[] input, double deltaS)
     {
         CheckAttacks();
-        ApplyInput(input, deltaMs);
-        UpdateVelocities(deltaMs);
-        UpdateFighterPositions(deltaMs);
-        UpdatePistolAndBulletPositions(deltaMs);
+        ApplyInput(input, deltaS);
+        UpdateVelocities(deltaS);
+        UpdateFighterPositions(deltaS);
+        UpdatePistolAndBulletPositions(deltaS);
         CheckPistol();
     }
 
-    private void UpdatePistolAndBulletPositions(float deltaMs)
+    private void UpdatePistolAndBulletPositions(double deltaS)
     {
-        _pistol.UpdatePosition(deltaMs);
-        _bullet?.UpdatePosition(deltaMs);
+        _pistol.UpdatePosition(deltaS);
+        _bullet?.UpdatePosition(deltaS);
     }
 
     public void CheckPistol()
@@ -97,11 +98,11 @@ public class MovementManager
         {
             return;
         }
-        List<(Fighter3 fighter, float overlap)> overlapInfos = new();
+        List<(Fighter fighter, Fix64 overlap)> overlapInfos = new();
         foreach (var fighter in _fighters)
         {
             var intersection = fighter.GetHitbox().Intersection(_pistol.GetHitbox());
-            if (intersection != default)
+            if (intersection.Area != Fix64.Zero)
             {
                 overlapInfos.Add((fighter, intersection.Area));
             }
@@ -116,37 +117,37 @@ public class MovementManager
         }
     }
 
-    private void ApplyInput(GameInput[] input, float deltaMs)
+    private void ApplyInput(GameInput[] input, double deltaS)
     {
         for (int i = 0; i < input.Length; i++)
         {
-            _fighters[i].ApplyInput(input[i], deltaMs);
+            _fighters[i].ApplyInput(input[i], deltaS);
         }
     }
 
-    private void UpdateVelocities(float deltaMs)
+    private void UpdateVelocities(double deltaS)
     {
         foreach (var box in _fighters)
         {
-            box.UpdateVelocity(deltaMs);
+            box.UpdateVelocity(deltaS);
         }
-        _pistol.UpdateVelocity(deltaMs);
+        _pistol.UpdateVelocity(deltaS);
     }
 
-    private void UpdateFighterPositions(float deltaMs)
+    private void UpdateFighterPositions(double deltaS)
     {
-        var remainingTime = deltaMs;
+        var remainingTime = deltaS;
         var collisions = GetFirstCollisions(remainingTime);
         var loops = 0;
         while (collisions.Count > 0 && loops < MaxCollisionLoops)
         {
             loops++;
-            AdvanceFighterPositions(collisions[0].TimeMs);
+            AdvanceFighterPositions(collisions[0].TimeS);
             foreach (var c in collisions)
             {
                 ResolveCollision(c);
             }
-            remainingTime -= collisions[0].TimeMs;
+            remainingTime -= collisions[0].TimeS;
             collisions = GetFirstCollisions(remainingTime);
         }
         if (loops == MaxCollisionLoops)
@@ -166,7 +167,7 @@ public class MovementManager
     {
         foreach (var (fighter1, fighter2) in GetFighterPairs())
         {
-            Fighter3.CheckPunches(fighter1, fighter2);
+            Fighter.CheckPunches(fighter1, fighter2);
         }
         if (_bullet is null)
         {
@@ -190,17 +191,17 @@ public class MovementManager
         {
             if (info.Other.AnchoredX)
             {
-                info.Fighter.Velocity = new(0, info.Fighter.Velocity.Y);
+                info.Fighter.Velocity = new(Fix64.Zero, info.Fighter.Velocity.Y);
                 info.Fighter.AddAnchor(info.Other, info.FighterSide);
             }
             else if (info.Fighter.AnchoredX)
             {
-                info.Other.Velocity = new(0, info.Other.Velocity.Y);
+                info.Other.Velocity = new(Fix64.Zero, info.Other.Velocity.Y);
                 info.Other.AddAnchor(info.Fighter, info.OtherSide);
             }
             else
             {
-                var aveVX = (info.Fighter.Velocity.X + info.Other.Velocity.X) / 2.0f;
+                var aveVX = (info.Fighter.Velocity.X + info.Other.Velocity.X) * 0.5;
                 info.Fighter.Velocity = new(aveVX, info.Fighter.Velocity.Y);
                 info.Other.Velocity = new(aveVX, info.Other.Velocity.Y);
             }
@@ -209,17 +210,17 @@ public class MovementManager
         {
             if (info.Other.AnchoredY)
             {
-                info.Fighter.Velocity = new(info.Fighter.Velocity.X, 0);
+                info.Fighter.Velocity = new(info.Fighter.Velocity.X, Fix64.Zero);
                 info.Fighter.AddAnchor(info.Other, info.FighterSide);
             }
             else if (info.Fighter.AnchoredY)
             {
-                info.Other.Velocity = new(info.Other.Velocity.X, 0);
+                info.Other.Velocity = new(info.Other.Velocity.X, Fix64.Zero);
                 info.Other.AddAnchor(info.Fighter, info.OtherSide);
             }
             else
             {
-                var aveVY = (info.Fighter.Velocity.Y + info.Other.Velocity.Y) / 2.0f;
+                var aveVY = (info.Fighter.Velocity.Y + info.Other.Velocity.Y) * 0.5;
                 info.Fighter.Velocity = new(info.Fighter.Velocity.X, aveVY);
                 info.Other.Velocity = new(info.Other.Velocity.X, aveVY);
             }
@@ -241,7 +242,7 @@ public class MovementManager
         }
     }
 
-    private static void NudgeAway(Box a, Side s, float distance)
+    private static void NudgeAway(Box a, Side s, double distance)
     {
         var newP = a.Position;
         switch (s)
@@ -262,32 +263,32 @@ public class MovementManager
         a.Position = newP;
     }
 
-    private void AdvanceFighterPositions(float deltaMs)
+    private void AdvanceFighterPositions(double deltaS)
     {
         foreach (var box in _fighters)
         {
-            box.UpdatePosition(deltaMs);
+            box.UpdatePosition(deltaS);
         }
     }
 
-    private List<CollisionInfo> GetFirstCollisions(float deltaMs)
+    private List<CollisionInfo> GetFirstCollisions(double deltaS)
     {
-        float lowestTime = float.PositiveInfinity;
+        double lowestTime = double.PositiveInfinity;
         List<CollisionInfo> firstCollisions = new();
         foreach (var (fighter, box) in GetFighterToBoxPairs())
         {
-            var collision = CheckCollision(fighter, box, deltaMs);
+            var collision = CheckCollision(fighter, box, deltaS);
             if (collision == CollisionInfo.NoCollision)
             {
                 continue;
             }
-            if (collision.TimeMs == lowestTime)
+            if (collision.TimeS == lowestTime)
             {
                 firstCollisions.Add(collision);
             }
-            else if (collision.TimeMs < lowestTime)
+            else if (collision.TimeS < lowestTime)
             {
-                lowestTime = collision.TimeMs;
+                lowestTime = collision.TimeS;
                 firstCollisions.Clear();
                 firstCollisions.Add(collision);
             }
@@ -296,7 +297,7 @@ public class MovementManager
         return firstCollisions;
     }
 
-    private IEnumerable<(Fighter3, Box)> GetFighterToBoxPairs()
+    private IEnumerable<(Fighter, Box)> GetFighterToBoxPairs()
     {
         HashSet<Box> alreadyChecked = new();
         foreach (var fighter in _fighters)
@@ -309,9 +310,9 @@ public class MovementManager
         }
     }
 
-    private IEnumerable<(Fighter3, Fighter3)> GetFighterPairs()
+    private IEnumerable<(Fighter, Fighter)> GetFighterPairs()
     {
-        HashSet<Fighter3> alreadyChecked = new();
+        HashSet<Fighter> alreadyChecked = new();
         foreach (var fighter1 in _fighters)
         {
             alreadyChecked.Add(fighter1);
@@ -322,10 +323,10 @@ public class MovementManager
         }
     }
 
-    public CollisionInfo CheckCollision(Fighter3 a, Box b, float deltaMs)
+    public CollisionInfo CheckCollision(Fighter a, Box b, double deltaS)
     {
         var vDif = b.Velocity - a.Velocity;
-        if (vDif.Length() == 0)
+        if (vDif.X == Fix64.Zero && vDif.Y == Fix64.Zero)
         {
             return CollisionInfo.NoCollision;
         }
@@ -333,11 +334,11 @@ public class MovementManager
         var bMin = b.Position;
         var aMax = a.Position + a.Size;
         var aMin = a.Position;
-        if (vDif.X == 0 && (aMin.X > bMax.X || bMin.X > aMax.X))
+        if (vDif.X == Fix64.Zero && (aMin.X > bMax.X || bMin.X > aMax.X))
         {
             return CollisionInfo.NoCollision;
         }
-        if (vDif.Y == 0 && (aMin.Y > bMax.Y || bMin.Y > aMax.Y))
+        if (vDif.Y == Fix64.Zero && (aMin.Y > bMax.Y || bMin.Y > aMax.Y))
         {
             return CollisionInfo.NoCollision;
         }
@@ -358,14 +359,14 @@ public class MovementManager
             {
                 Fighter = a,
                 Other = b,
-                TimeMs = 0,
+                TimeS = 0,
                 FighterSide = aSide,
                 OtherSide = bSide
             };
         }
 
-        var firstOverlapTime = new Vector2(0, 0);
-        var lastOverlapTime = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+        var firstOverlapTime = new FVector2(0, 0);
+        var lastOverlapTime = new FVector2(double.PositiveInfinity, double.PositiveInfinity);
 
         for (int i = 0; i < 2; i++)
         {
@@ -401,12 +402,12 @@ public class MovementManager
             }
         }
 
-        if (firstOverlapTime[0] > deltaMs || firstOverlapTime[1] > deltaMs)
+        if (firstOverlapTime[0] > deltaS || firstOverlapTime[1] > deltaS)
         {
             return CollisionInfo.NoCollision;
         }
 
-        if (MathF.Max(firstOverlapTime.X, firstOverlapTime.Y) > MathF.Min(lastOverlapTime.X, lastOverlapTime.Y))
+        if (Fix64.Max(firstOverlapTime.X, firstOverlapTime.Y) > Fix64.Min(lastOverlapTime.X, lastOverlapTime.Y))
         {
             return CollisionInfo.NoCollision;
         }
@@ -418,13 +419,13 @@ public class MovementManager
         };
         if (firstOverlapTime.X < firstOverlapTime.Y)
         {
-            info.TimeMs = firstOverlapTime.Y;
+            info.TimeS = (double)firstOverlapTime.Y;
             info.FighterSide = vDif.Y > 0.0f ? Side.Top: Side.Bottom;
             info.OtherSide = vDif.Y > 0.0f ? Side.Bottom : Side.Top;
         }
         else
         {
-            info.TimeMs = firstOverlapTime.X;
+            info.TimeS = (double)firstOverlapTime.X;
             info.FighterSide = vDif.X > 0.0f ? Side.Left : Side.Right;
             info.OtherSide = vDif.X > 0.0f ? Side.Right : Side.Left;
         }
@@ -435,8 +436,8 @@ public class MovementManager
 public class CollisionInfo
 {
     public static CollisionInfo NoCollision { get; } = new();
-    public float TimeMs { get; set; }
-    public Fighter3 Fighter { get; set; }
+    public double TimeS { get; set; }
+    public Fighter Fighter { get; set; }
     public Box Other { get; set; }
     public Side FighterSide { get; set; }
     public Side OtherSide { get; set; }

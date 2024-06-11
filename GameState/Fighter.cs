@@ -1,54 +1,55 @@
 using System;
 using System.Collections.Generic;
+using FixMath.NET;
 using Godot;
 
-public class Fighter3 : Box, IFighter
+public class Fighter : Box, IFighter
 {
-    public const int FighterWidth = 110;
-    private const int FighterHeight = 160;
-    private const float FighterVelocityXMax = 0.8f;
-    private const float CoastAcceleration = 0.0011f;
-    private const float RunAcceleration = 0.0015f;
-    private const float SkidAcceleration = 0.003f;
-    private const float JumpVelocity = -1.2f;
-    private const float Gravity = 0.003f;
-    private const float SlideDrag = Gravity / 2;
-    private const float JumpCooldownMs = 300;
-    private const float AttackCooldownMs = 500;
-    private const float AttackActionDurationMs = 300;
-    private const float PunchHitboxDurationMs = 50;
-    private const float StunDurationMs = 500;
-    private const float StunCooldownMs = 1000;
-    private const float WieldCooldownMs = 1000;
+    public const int FighterWidth = 55;
+    private const int FighterHeight = 80;
+    private const double FighterVelocityXMax = 800;
+    private const double CoastAcceleration = 1100;
+    private const double RunAcceleration = 1500;
+    private const double SkidAcceleration = 3000;
+    private const double JumpVelocity = -1200;
+    private const double Gravity = 3000;
+    private const double SlideDrag = Gravity / 2;
+    private const double JumpCooldownS = 0.3;
+    private const double AttackCooldownS = 0.5;
+    private const double AttackActionDurationS = 0.3;
+    private const double PunchHitboxDurationS = 0.05;
+    private const double StunDurationS = 0.5;
+    private const double StunCooldownS = 1.0;
+    private const double WieldCooldownS = 1.0;
     private const int PistolOffsetX = 3;
     private const int PistolOffsetY = 30;
-    private Rect2 _punchHitbox = new(8, 34, 96, 40);
+    private FRect2 _punchHitbox = new(new FVector2(8, 34), new FVector2(96, 40));
     private bool _stopping;
-    private float _timeSinceLastJumpMs;
-    private float _timeSinceLastStunMs = 5000;
-    private float _timeSinceLastAttackMs = 5000;
-    private float _timeSinceLastWieldMs = 5000;
+    private double _timeSinceLastJumpS;
+    private double _timeSinceLastStunS = 5;
+    private double _timeSinceLastAttackS = 5;
+    private double _timeSinceLastWieldS = 5;
     public FighterMovement Movement { get; protected set; } = FighterMovement.Idle;
     public FighterAction Action { get; protected set; } = FighterAction.None;
     public bool FacingRight { get; set; }
     public bool HasPistol { get; set; }
 
-    public Fighter3(Vector2 position, bool facingRight)
-        : base(position, new Vector2(FighterWidth, FighterHeight), false)
+    public Fighter(FVector2 position, bool facingRight)
+        : base(position, new FVector2(FighterWidth, FighterHeight), false)
     {
         FacingRight = facingRight;
         Acceleration = new(0, Gravity);
-        VelocityCap = new(FighterVelocityXMax, float.PositiveInfinity);
+        VelocityCap = new((Fix64)FighterVelocityXMax, Fix64.MaxValue);
     }
 
-    public void CopyFrom(Fighter3 other)
+    public void CopyFrom(Fighter other)
     {
         base.CopyFrom(other);
         _stopping = other._stopping;
-        _timeSinceLastJumpMs = other._timeSinceLastJumpMs;
-        _timeSinceLastStunMs = other._timeSinceLastStunMs;
-        _timeSinceLastAttackMs = other._timeSinceLastAttackMs;
-        _timeSinceLastWieldMs = other._timeSinceLastWieldMs;
+        _timeSinceLastJumpS = other._timeSinceLastJumpS;
+        _timeSinceLastStunS = other._timeSinceLastStunS;
+        _timeSinceLastAttackS = other._timeSinceLastAttackS;
+        _timeSinceLastWieldS = other._timeSinceLastWieldS;
         Movement = other.Movement;
         Action = other.Action;
         FacingRight = other.FacingRight;
@@ -65,40 +66,40 @@ public class Fighter3 : Box, IFighter
         HasPistol = false;
     }
 
-    public void ApplyInput(GameInput input, float deltaMs)
+    public void ApplyInput(GameInput input, double deltaS)
     {
-        SetAction(input, deltaMs);
-        SetAccelerationAndState(input, deltaMs);
+        SetAction(input, deltaS);
+        SetAccelerationAndState(input, deltaS);
         if (Movement == FighterMovement.Wallslide && Action == FighterAction.Punch)
         {
             Action = FighterAction.None;
         }
     }
 
-    public override void UpdateVelocity(float deltaMs)
+    public override void UpdateVelocity(double deltaS)
     {
-        base.UpdateVelocity(deltaMs);
+        base.UpdateVelocity(deltaS);
         if (_stopping)
         {
-            Velocity = new(0, Velocity.Y);
+            Velocity = new(Fix64.Zero, Velocity.Y);
             _stopping = false;
         }
         if (Action != FighterAction.Dying)
         {
-            if (Velocity.X > 0)
+            if (Velocity.X > Fix64.Zero)
             {
                 FacingRight = true;
             }
-            if (Velocity.X < 0)
+            if (Velocity.X < Fix64.Zero)
             {
                 FacingRight = false;
             }
         }
     }
 
-    public override void UpdatePosition(float deltaMs)
+    public override void UpdatePosition(double deltaS)
     {
-        base.UpdatePosition(deltaMs);
+        base.UpdatePosition(deltaS);
         if (HasPistol)
         {
             var pistolX = FacingRight ? Position.X + FighterWidth + PistolOffsetX
@@ -110,14 +111,15 @@ public class Fighter3 : Box, IFighter
         }
     }
 
-    public Rect2 GetAttackHitbox()
+    public FRect2 GetAttackHitbox()
     {
-        if (Action != FighterAction.Punch || _timeSinceLastAttackMs > PunchHitboxDurationMs)
+        if (Action != FighterAction.Punch || _timeSinceLastAttackS > PunchHitboxDurationS)
         {
             return default;
         }
         var punchOffsetX = FacingRight ? _punchHitbox.Position.X : -_punchHitbox.Position.X - _punchHitbox.Size.X;
-        return new(Position.X + punchOffsetX, Position.Y + _punchHitbox.Position.Y, _punchHitbox.Size);
+        var punchPos = new FVector2(Position.X + punchOffsetX, Position.Y + _punchHitbox.Position.Y);
+        return new(punchPos, _punchHitbox.Size);
     }
 
     protected override void UpdateAnchors()
@@ -143,29 +145,29 @@ public class Fighter3 : Box, IFighter
         }
     }
 
-    private void SetAccelerationAndState(GameInput input, float deltaMs)
+    private void SetAccelerationAndState(GameInput input, double deltaS)
     {
         var keys = new HashSet<Key>(input.PressedKeys);
         if (Action == FighterAction.Stunned || Action == FighterAction.Dying)
         {
             keys.Clear();
         }
-        _timeSinceLastJumpMs += deltaMs;
+        _timeSinceLastJumpS += deltaS;
         _stopping = false;
-        float accelX;
-        float accelY = Gravity;
+        double accelX;
+        double accelY = Gravity;
         FighterMovement groundState = FighterMovement.Idle;
         if (keys.Contains(Key.Left) && !keys.Contains(Key.Right))
         {
             RemoveAnchor(Side.Right);
             if (Movement.IsAerialState())
             {
-                accelX = Velocity.X > 0 ? -RunAcceleration : -RunAcceleration;
+                accelX = Velocity.X > Fix64.Zero ? -RunAcceleration : -RunAcceleration;
             }
             else
             {
-                accelX = Velocity.X > 0 ? -SkidAcceleration : -RunAcceleration;
-                groundState = Velocity.X > 0 ? FighterMovement.Skidding : FighterMovement.Running;
+                accelX = Velocity.X > Fix64.Zero ? -SkidAcceleration : -RunAcceleration;
+                groundState = Velocity.X > Fix64.Zero ? FighterMovement.Skidding : FighterMovement.Running;
             }
         }
         else if (keys.Contains(Key.Right) && !keys.Contains(Key.Left))
@@ -173,17 +175,17 @@ public class Fighter3 : Box, IFighter
             RemoveAnchor(Side.Left);
             if (Movement.IsAerialState())
             {
-                accelX = Velocity.X < 0 ? RunAcceleration : RunAcceleration;
+                accelX = Velocity.X < Fix64.Zero ? RunAcceleration : RunAcceleration;
             }
             else
             {
-                accelX = Velocity.X < 0 ? SkidAcceleration : RunAcceleration;
-                groundState = Velocity.X < 0 ? FighterMovement.Skidding : FighterMovement.Running;
+                accelX = Velocity.X < Fix64.Zero ? SkidAcceleration : RunAcceleration;
+                groundState = Velocity.X < Fix64.Zero ? FighterMovement.Skidding : FighterMovement.Running;
             }
         }
-        else if (Velocity.X != 0)
+        else if (Velocity.X != Fix64.Zero)
         {
-            if (Velocity.Abs().X < CoastAcceleration * deltaMs)
+            if (Fix64.Abs(Velocity.X) < CoastAcceleration * deltaS)
             {
                 _stopping = true;
                 groundState = FighterMovement.Idle;
@@ -191,7 +193,7 @@ public class Fighter3 : Box, IFighter
             }
             else
             {
-                accelX = Velocity.X > 0 ? -CoastAcceleration : CoastAcceleration;
+                accelX = Velocity.X > Fix64.Zero ? -CoastAcceleration : CoastAcceleration;
                 groundState = FighterMovement.Running;
             }
         }
@@ -201,10 +203,10 @@ public class Fighter3 : Box, IFighter
             groundState = FighterMovement.Idle;
         }
 
-        var shouldJump = _timeSinceLastJumpMs > JumpCooldownMs && keys.Contains(Key.Space);
+        var shouldJump = _timeSinceLastJumpS > JumpCooldownS && keys.Contains(Key.Space);
         if (shouldJump && Movement == FighterMovement.Wallslide)
         {
-            _timeSinceLastJumpMs = 0;
+            _timeSinceLastJumpS = 0;
             Movement = FighterMovement.WallslideJump;
             var xV = GetAnchor(Side.Left) != null ? FighterVelocityXMax : -FighterVelocityXMax;
             accelX = GetAnchor(Side.Left) != null ? RunAcceleration : -RunAcceleration;
@@ -213,9 +215,9 @@ public class Fighter3 : Box, IFighter
         }
         else if (shouldJump && GetAnchor(Side.Bottom) != null)
         {
-            _timeSinceLastJumpMs = 0;
+            _timeSinceLastJumpS = 0;
             var anchor = GetAnchor(Side.Bottom);
-            if (anchor is Fighter3 jumpedOn)
+            if (anchor is Fighter jumpedOn)
             {
                 jumpedOn.Stun();
                 if (!jumpedOn.AnchoredY)
@@ -225,7 +227,7 @@ public class Fighter3 : Box, IFighter
             }
 
             RemoveAnchor(Side.Bottom);
-            var jumpV = (float)Math.Clamp(Velocity.Y + JumpVelocity, JumpVelocity * 1.5, -JumpVelocity * 1.5);
+            var jumpV = Fix64.Clamp(Velocity.Y + JumpVelocity, (Fix64)(JumpVelocity * 1.5), (Fix64)(JumpVelocity * -1.5));
             Velocity = new(Velocity.X, jumpV);
             Movement = FighterMovement.Jumping;
         }
@@ -238,7 +240,7 @@ public class Fighter3 : Box, IFighter
         {
             if (AnchoredX)
             {
-                var slideDrag = Velocity.Y > 0 ? SlideDrag : -SlideDrag;
+                var slideDrag = Velocity.Y > Fix64.Zero ? SlideDrag : -SlideDrag;
                 accelY -= slideDrag;
             }
             else
@@ -249,11 +251,11 @@ public class Fighter3 : Box, IFighter
         Acceleration = new(accelX, accelY);
     }
 
-    private void SetAction(GameInput input, float deltaMs)
+    private void SetAction(GameInput input, double deltaS)
     {
-        _timeSinceLastAttackMs += deltaMs;
-        _timeSinceLastStunMs += deltaMs;
-        _timeSinceLastWieldMs += deltaMs;
+        _timeSinceLastAttackS += deltaS;
+        _timeSinceLastStunS += deltaS;
+        _timeSinceLastWieldS += deltaS;
         if (Action == FighterAction.Dying)
         {
             return;
@@ -261,7 +263,7 @@ public class Fighter3 : Box, IFighter
 
         if (Action == FighterAction.Stunned)
         {
-            if (_timeSinceLastStunMs > StunDurationMs)
+            if (_timeSinceLastStunS > StunDurationS)
             {
                 Action = FighterAction.None;
             }
@@ -270,13 +272,13 @@ public class Fighter3 : Box, IFighter
                 return;
             }
         }
-        if (Action == FighterAction.Punch && _timeSinceLastAttackMs > AttackActionDurationMs)
+        if (Action == FighterAction.Punch && _timeSinceLastAttackS > AttackActionDurationS)
         {
             Action = FighterAction.None;
         }
-        else if (_timeSinceLastAttackMs > AttackCooldownMs && input.PressedKeys.Contains(Key.X))
+        else if (_timeSinceLastAttackS > AttackCooldownS && input.PressedKeys.Contains(Key.X))
         {
-            _timeSinceLastAttackMs = 0;
+            _timeSinceLastAttackS = 0;
             if (!HasPistol)
             {
                 Action = FighterAction.Punch;
@@ -291,10 +293,10 @@ public class Fighter3 : Box, IFighter
 
     public void Stun()
     {
-        if (_timeSinceLastStunMs > StunCooldownMs && Action != FighterAction.Dying)
+        if (_timeSinceLastStunS > StunCooldownS && Action != FighterAction.Dying)
         {
             Action = FighterAction.Stunned;
-            _timeSinceLastStunMs = 0;
+            _timeSinceLastStunS = 0;
             if (HasPistol)
             {
                 MovementManager.GetPistol().IsWielded = false;
@@ -305,29 +307,29 @@ public class Fighter3 : Box, IFighter
 
     public bool WieldPistol()
     {
-        if (_timeSinceLastWieldMs > WieldCooldownMs)
+        if (_timeSinceLastWieldS > WieldCooldownS)
         {
             HasPistol = true;
-            _timeSinceLastWieldMs = 0;
+            _timeSinceLastWieldS = 0;
             return true;
         }
         return false;
     }
 
-    public static void CheckPunches(Fighter3 fighter1, Fighter3 fighter2)
+    public static void CheckPunches(Fighter fighter1, Fighter fighter2)
     {
         var attackBox1 = fighter1.GetAttackHitbox();
         var attackBox2 = fighter2.GetAttackHitbox();
-        var hit1 = attackBox1 != default && attackBox1.Intersection(fighter2.GetHitbox()) != default;
-        var hit2 = attackBox2 != default && attackBox2.Intersection(fighter1.GetHitbox()) != default;
+        var hit1 = attackBox1.Area != Fix64.Zero && attackBox1.Intersection(fighter2.GetHitbox()).Area != Fix64.Zero;
+        var hit2 = attackBox2.Area != Fix64.Zero && attackBox2.Intersection(fighter1.GetHitbox()).Area != Fix64.Zero;
         if (hit1 && hit2)
         {
-            if (fighter1._timeSinceLastAttackMs == fighter2._timeSinceLastAttackMs)
+            if (fighter1._timeSinceLastAttackS == fighter2._timeSinceLastAttackS)
             {
                 fighter1.Stun();
                 fighter2.Stun();
             }
-            else if (fighter1._timeSinceLastAttackMs > fighter2._timeSinceLastAttackMs)
+            else if (fighter1._timeSinceLastAttackS > fighter2._timeSinceLastAttackS)
             {
                 fighter2.Stun();
             }

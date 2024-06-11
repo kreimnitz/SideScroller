@@ -1,8 +1,8 @@
-using Godot;
+using FixMath.NET;
 
 public interface IPistol
 {
-    Vector2 Position { get; }
+    FVector2 Position { get; }
     public bool IsWielded { get; set; }
     bool FacingRight { get; }
 }
@@ -12,12 +12,12 @@ public class Pistol : Box, IPistol
     public const int PistolWidth = 33;
     private const int PistolHeight = 18;
     private const int ShotYOffset = 0;
-    private const float Gravity = 0.001f;
+    private const double Gravity = 1000;
     public bool IsLoaded { get; set; }
     public bool FacingRight { get; set; }
     public bool IsWielded { get; set; }
     
-    public Pistol(Vector2 position, bool facingRight)
+    public Pistol(FVector2 position, bool facingRight)
         : base(position, new(PistolWidth, PistolHeight), false)
     {
         FacingRight = facingRight;
@@ -54,16 +54,16 @@ public class Pistol : Box, IPistol
         FacingRight = other.FacingRight;
     }
 
-    public override void UpdatePosition(float deltaMs)
+    public override void UpdatePosition(double deltaS)
     {
         if (IsWielded)
         {
             return;
         }
-        base.UpdatePosition(deltaMs);
+        base.UpdatePosition(deltaS);
         if (Position.Y > 681.95f)
         {
-            Position = new (Position.X, 681.95f);
+            Position = new (Position.X, (Fix64)681.95);
             Velocity = new ();
         }
     }
@@ -73,23 +73,23 @@ public class Bullet : Box
 {
     public const int BulletWidth = 20;
     private const int BulletHeight = 13;
-    private const float BulletVelocity = 3.0f;
+    private const double BulletVelocity = 3000f;
     private const int PositionXMax = 2100;
     private const int PositionXMin = -500;
 
     public bool FacingRight { get; set; }
     
-    public Bullet(Vector2 position, bool facingRight)
+    public Bullet(FVector2 position, bool facingRight)
         : base(position, new(BulletWidth, BulletHeight), false)
     {
         FacingRight = facingRight;
         var velocityX = FacingRight ? BulletVelocity : -BulletVelocity;
-        Velocity = new Vector2(velocityX, 0);
+        Velocity = new FVector2(velocityX, 0);
     }
 
-    public override void UpdatePosition(float deltaMs)
+    public override void UpdatePosition(double deltaS)
     {
-        base.UpdatePosition(deltaMs);
+        base.UpdatePosition(deltaS);
         if (Position.X > PositionXMax || Position.X < PositionXMin)
         {
             MovementManager.RemoveBullet();

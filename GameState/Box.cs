@@ -1,31 +1,31 @@
 using System.Collections.Generic;
 using System.Linq;
-using Godot;
+using FixMath.NET;
 
 public class Box
 {
     private Dictionary<Side, int> _anchors = new();
-    private Rect2 _lastHitbox;
-    protected Vector2 InitialPosition { get; set; }
+    private FRect2 _lastHitbox;
+    protected FVector2 InitialPosition { get; set; }
     protected MovementManager MovementManager { get; private set; }
     public int ManagerId { get; set; } = -1;
-    public Vector2 VelocityCap { get; set; }
-    public Vector2 Size { get; protected set; }
+    public FVector2 VelocityCap { get; set; }
+    public FVector2 Size { get; protected set; }
     public bool Anchored { get; set; }
-    public Vector2 Position { get; set; }
-    public Vector2 Velocity { get; set; }
-    public Vector2 Acceleration { get; set; }
+    public FVector2 Position { get; set; }
+    public FVector2 Velocity { get; set; }
+    public FVector2 Acceleration { get; set; }
     public bool AnchoredX => Anchored || _anchors.ContainsKey(Side.Left) || _anchors.ContainsKey(Side.Right);
     public bool AnchoredY => Anchored || _anchors.ContainsKey(Side.Top) || _anchors.ContainsKey(Side.Bottom);
 
-    public Box(Vector2 position, Vector2 size, bool anchored)
+    public Box(FVector2 position, FVector2 size, bool anchored)
     {
-        _lastHitbox = new Rect2(position, size);
+        _lastHitbox = new FRect2(position, size);
         Position = position;
         InitialPosition = position;
         Size = size;
         Anchored = anchored;
-        VelocityCap = new(float.PositiveInfinity, float.PositiveInfinity);
+        VelocityCap = new(Fix64.MaxValue, Fix64.MaxValue);
     }
 
     public void SetMovementManager(MovementManager movementManager, int id)
@@ -47,7 +47,7 @@ public class Box
         Anchored = other.Anchored;
     }
 
-    public Rect2 GetHitbox()
+    public FRect2 GetHitbox()
     {
         if (Position != _lastHitbox.Position)
         {
@@ -64,7 +64,7 @@ public class Box
         _anchors.Clear();
     }
 
-    public virtual void UpdateVelocity(float deltaMs)
+    public virtual void UpdateVelocity(double deltaS)
     {
         if (Anchored)
         {
@@ -72,7 +72,7 @@ public class Box
         }
 
         UpdateAnchors();
-        var tempV = Velocity + deltaMs * Acceleration;
+        var tempV = Velocity + deltaS * Acceleration;
         if (AnchoredX)
         {
             var side = _anchors.ContainsKey(Side.Left) ? Side.Left : Side.Right;
@@ -83,8 +83,9 @@ public class Box
             var side = _anchors.ContainsKey(Side.Top) ? Side.Top : Side.Bottom;
             tempV.Y = GetAnchor(side).Velocity.Y;
         }
+        tempV.X = Fix64.Clamp(tempV.X, -VelocityCap.X, VelocityCap.X);
+        tempV.Y = Fix64.Clamp(tempV.Y, -VelocityCap.Y, VelocityCap.Y);
         Velocity = tempV;
-        Velocity = Velocity.Clamp(-VelocityCap, VelocityCap);
     }
 
     public bool IsSideAnchored(Side side)
@@ -107,20 +108,20 @@ public class Box
             }
             var otherAxis = (axis + 1) % 2;
             var anchor = GetAnchor(key);
-            if (anchor.Velocity[axis] != 0 || !Overlaps(anchor, otherAxis))
+            if (anchor.Velocity[axis] != Fix64.Zero || !Overlaps(anchor, otherAxis))
             {
                 _anchors.Remove(key);
             }
         }
     }
 
-    public virtual void UpdatePosition(float deltaMs)
+    public virtual void UpdatePosition(double deltaS)
     {
         if (Anchored)
         {
             return;
         }
-        Position += deltaMs * Velocity;
+        Position += deltaS * Velocity;
     }
 
     public virtual void OnCollision(Side side, Box other)
