@@ -21,24 +21,18 @@ public class ClientGameState : IClientGameState
     private const int InitialXRight = 1410;
     private const float InitialY = 619.95f;
     private MovementManager _movementManager = new MovementManager();
-    public Fighter Fighter0 { get; private set; }
-    public Fighter Fighter1 { get; private set; }
+    public Fighter3 Fighter0 { get; private set; }
+    public Fighter3 Fighter1 { get; private set; }
     public Pistol Pistol { get; private set; }
     public Bullet Bullet => _movementManager.GetBullet();
     public ClientGameState()
     {
-        _floor = new(new Vector2(-50, 700), new Vector2(1700, 500), true);
-        _leftWall = new(new Vector2(-200, -50), new Vector2(200, 700), true);
-        _rightWall = new(new Vector2(1600, -50), new Vector2(200, 700), true);
-        Fighter0 = new Fighter(new Vector2(InitialXLeft, InitialY), true);
-        Fighter1 = new Fighter(new Vector2(InitialXRight, InitialY), false);
+        Fighter0 = new Fighter3(new Vector2(InitialXLeft, InitialY), true);
+        Fighter1 = new Fighter3(new Vector2(InitialXRight, InitialY), false);
         Pistol = new Pistol(new Vector2(650, 0), true);
         _movementManager.SetPistol(Pistol);
         _movementManager.AddFighter(Fighter0);
         _movementManager.AddFighter(Fighter1);
-        _movementManager.AddStatic(_floor);
-        _movementManager.AddStatic(_leftWall);
-        _movementManager.AddStatic(_rightWall);
     }
 
     private void Reset()
@@ -50,9 +44,6 @@ public class ClientGameState : IClientGameState
         _movementManager.SetPistol(Pistol);
         _movementManager.AddFighter(Fighter0);
         _movementManager.AddFighter(Fighter1);
-        _movementManager.AddStatic(_floor);
-        _movementManager.AddStatic(_leftWall);
-        _movementManager.AddStatic(_rightWall);
     }
 
     public void ApplyInput(GameInput[] input, double deltaS, bool isPredict)

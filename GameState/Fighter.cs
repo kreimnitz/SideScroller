@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using Godot;
 
-public class Fighter : Box, IFighter
+public class Fighter3 : Box, IFighter
 {
-    public const int FighterWidth = 55;
-    private const int FighterHeight = 80;
+    public const int FighterWidth = 110;
+    private const int FighterHeight = 160;
     private const float FighterVelocityXMax = 0.8f;
     private const float CoastAcceleration = 0.0011f;
     private const float RunAcceleration = 0.0015f;
@@ -33,7 +33,7 @@ public class Fighter : Box, IFighter
     public bool FacingRight { get; set; }
     public bool HasPistol { get; set; }
 
-    public Fighter(Vector2 position, bool facingRight)
+    public Fighter3(Vector2 position, bool facingRight)
         : base(position, new Vector2(FighterWidth, FighterHeight), false)
     {
         FacingRight = facingRight;
@@ -41,7 +41,7 @@ public class Fighter : Box, IFighter
         VelocityCap = new(FighterVelocityXMax, float.PositiveInfinity);
     }
 
-    public void CopyFrom(Fighter other)
+    public void CopyFrom(Fighter3 other)
     {
         base.CopyFrom(other);
         _stopping = other._stopping;
@@ -215,7 +215,7 @@ public class Fighter : Box, IFighter
         {
             _timeSinceLastJumpMs = 0;
             var anchor = GetAnchor(Side.Bottom);
-            if (anchor is Fighter jumpedOn)
+            if (anchor is Fighter3 jumpedOn)
             {
                 jumpedOn.Stun();
                 if (!jumpedOn.AnchoredY)
@@ -314,7 +314,7 @@ public class Fighter : Box, IFighter
         return false;
     }
 
-    public static void CheckPunches(Fighter fighter1, Fighter fighter2)
+    public static void CheckPunches(Fighter3 fighter1, Fighter3 fighter2)
     {
         var attackBox1 = fighter1.GetAttackHitbox();
         var attackBox2 = fighter2.GetAttackHitbox();

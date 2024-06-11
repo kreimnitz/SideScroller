@@ -10,7 +10,7 @@ public class MovementManager
     private const int MaxCollisionLoops = 100;
     private Dictionary<int, Box> _idToBox = new();
     private List<Box> _staticBoxes = new();
-    private List<Fighter> _fighters = new();
+    private List<Fighter3> _fighters = new();
     private IEnumerable<Box> _solidBoxes => _staticBoxes.Concat(_fighters);
     private Bullet _bullet = null;
     private Pistol _pistol;
@@ -35,7 +35,7 @@ public class MovementManager
         RegisterBox(box);
     }
 
-    public void AddFighter(Fighter fighter)
+    public void AddFighter(Fighter3 fighter)
     {
         _fighters.Add(fighter);
         RegisterBox(fighter);
@@ -97,7 +97,7 @@ public class MovementManager
         {
             return;
         }
-        List<(Fighter fighter, float overlap)> overlapInfos = new();
+        List<(Fighter3 fighter, float overlap)> overlapInfos = new();
         foreach (var fighter in _fighters)
         {
             var intersection = fighter.GetHitbox().Intersection(_pistol.GetHitbox());
@@ -166,7 +166,7 @@ public class MovementManager
     {
         foreach (var (fighter1, fighter2) in GetFighterPairs())
         {
-            Fighter.CheckPunches(fighter1, fighter2);
+            Fighter3.CheckPunches(fighter1, fighter2);
         }
         if (_bullet is null)
         {
@@ -296,7 +296,7 @@ public class MovementManager
         return firstCollisions;
     }
 
-    private IEnumerable<(Fighter, Box)> GetFighterToBoxPairs()
+    private IEnumerable<(Fighter3, Box)> GetFighterToBoxPairs()
     {
         HashSet<Box> alreadyChecked = new();
         foreach (var fighter in _fighters)
@@ -309,9 +309,9 @@ public class MovementManager
         }
     }
 
-    private IEnumerable<(Fighter, Fighter)> GetFighterPairs()
+    private IEnumerable<(Fighter3, Fighter3)> GetFighterPairs()
     {
-        HashSet<Fighter> alreadyChecked = new();
+        HashSet<Fighter3> alreadyChecked = new();
         foreach (var fighter1 in _fighters)
         {
             alreadyChecked.Add(fighter1);
@@ -322,7 +322,7 @@ public class MovementManager
         }
     }
 
-    public CollisionInfo CheckCollision(Fighter a, Box b, float deltaMs)
+    public CollisionInfo CheckCollision(Fighter3 a, Box b, float deltaMs)
     {
         var vDif = b.Velocity - a.Velocity;
         if (vDif.Length() == 0)
@@ -436,7 +436,7 @@ public class CollisionInfo
 {
     public static CollisionInfo NoCollision { get; } = new();
     public float TimeMs { get; set; }
-    public Fighter Fighter { get; set; }
+    public Fighter3 Fighter { get; set; }
     public Box Other { get; set; }
     public Side FighterSide { get; set; }
     public Side OtherSide { get; set; }
