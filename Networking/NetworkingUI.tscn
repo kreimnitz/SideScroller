@@ -1,0 +1,81 @@
+[gd_scene format=3 uid="uid://cp1lifcuruape"]
+
+[node name="NetworkingUI" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 593.0
+offset_top = 313.0
+offset_right = 993.0
+offset_bottom = 513.0
+
+[node name="HostChoiceContainer" type="VBoxContainer" parent="."]
+layout_direction = 2
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -77.0
+offset_right = 100.0
+offset_bottom = 77.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HostButton" type="Button" parent="HostChoiceContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+toggle_mode = true
+text = "Host"
+
+[node name="JoinButton" type="Button" parent="HostChoiceContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+toggle_mode = true
+text = "Join"
+
+[node name="HostGameStartContainer" type="VBoxContainer" parent="."]
+visible = false
+layout_direction = 2
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -100.0
+offset_right = 201.0
+offset_bottom = 96.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RemoteConnectionsLabel" type="Label" parent="HostGameStartContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "Remote Connections: 0"
+
+[node name="StartGameButton" type="Button" parent="HostGameStartContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+toggle_mode = true
+text = "Start Game"
+
+[node name="Label" type="Label" parent="."]
+visible = false
+layout_direction = 2
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.5
+offset_top = -25.0
+offset_right = 200.5
+offset_bottom = 25.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 36
+text = "Connecting..."
